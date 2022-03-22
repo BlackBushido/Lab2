@@ -1,7 +1,11 @@
 package com.example.lab2;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,7 +17,9 @@ import android.widget.Toast;
 public class MainActivity extends AppCompatActivity {
 
     private EditText firstNameField, lastNameField, gradesCountField;
-    Button gradesButton;
+    private Button gradesButton, resultButton;
+    public static final String GRADES_KEY = "com.example.w4_two_activities_and.GRADES_KEY";
+    private ActivityResultLauncher<Intent> mActivityResultLauncher;
 
     private final TextWatcher textWatcher = new TextWatcher() {
         @Override
@@ -51,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         lastNameField = findViewById(R.id.editTextTextPersonName2);
         gradesCountField = findViewById(R.id.editTextNumber);
         gradesButton = findViewById(R.id.button);
+        resultButton = findViewById(R.id.result);
 
         firstNameField.addTextChangedListener(textWatcher);
         lastNameField.addTextChangedListener(textWatcher);
@@ -59,6 +66,32 @@ public class MainActivity extends AppCompatActivity {
         firstNameField.setOnFocusChangeListener(((view, hasFocus) -> checkField(hasFocus, getString(R.string.firstNameEmpty), firstNameField)));
         lastNameField.setOnFocusChangeListener((view, hasFocus) -> checkField(hasFocus, getString(R.string.lastNameEmpty), lastNameField));
         gradesCountField.setOnFocusChangeListener((view, hasFocus) -> checkField(hasFocus, getString(R.string.gradesCountEmpty), gradesCountField));
+
+        gradesButton.setOnClickListener(v -> startGradesActivity());
+        mActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if(result.getResultCode() == RESULT_OK && result.getData() != null){
+                        Bundle bundle = result.getData().getExtras();
+                        String srednia = bundle.getString(GradesActivity.MEAN_KEY);
+
+                        resultButton.setVisibility(View.VISIBLE);
+                        String resultString = (Double.parseDouble(srednia) >= 3.0) ? getString(R.string.gj) : getString(R.string.nope);
+                        resultButton.setText(resultString);
+                        resultButton.setOnClickListener(view -> {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                            builder.setTitle(R.string.app_name);
+                            builder.setIcon(R.mipmap.ic_launcher);
+                            String res = (Double.parseDouble(srednia) >= 3.0) ? getString(R.string.congratulation) : getString(R.string.condition);
+                            builder.setMessage(res)
+                                    .setCancelable(false)
+                                    .setPositiveButton("OK", (dialog, id) -> finish());
+                            AlertDialog alert = builder.create();
+                            alert.show();
+                        });
+                    }
+                }
+        );
+
     }
 
     private void checkField(boolean hasFocus, String msg, EditText textField){
@@ -76,5 +109,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    private void startGradesActivity(){
+        Intent intent = new Intent(this, GradesActivity.class);
+        intent.putExtra(GRADES_KEY, gradesCountField.getText().toString());
+        mActivityResultLauncher.launch(intent);
     }
 }
